@@ -101,20 +101,20 @@ namespace CadSimulation
   internal class Rectangle : Shape
   {
     readonly int _height;
-    readonly int _weidth;
+    readonly int _width;
     public Rectangle(int height, int weidth)
     {
       _height = height;
-      _weidth = weidth;
+      _width = weidth;
     }
     double Shape.area()
     {
-      return _height * _weidth;
+      return _height * _width;
     }
 
     void Shape.descr()
     {
-      Console.WriteLine($"Rectangle, height: {_height}, weidth: {_weidth}");
+      Console.WriteLine($"Rectangle, height: {_height}, weidth: {_width}");
     }
   }
   internal class Circle : Shape
