@@ -1,28 +1,36 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using CadSimulation;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 List<Shape> shapes = new List<Shape>();
+string savingPath = string.Empty;
 
-static string? GetPathFromCommandLine(string[] commandLine)
+int index = args.ToList().IndexOf("--path");
+if (index >= 0)
 {
-  string? savePath = null;
-  if (commandLine.Length >= 2)
+  // "file name" expected right after
+
+  bool savingPathOk = index + 1 < args.Length;
+  if (savingPathOk)
   {
-    if (commandLine[0].Equals("--path", StringComparison.CurrentCultureIgnoreCase))
+    savingPath = args[index + 1];
+    if (!Directory.Exists(Path.GetDirectoryName(savingPath)))
     {
-      savePath = commandLine[1];
+      Console.WriteLine("Saving path doesn't exists.");
+      return;
     }
+
+    savingPathOk = !string.IsNullOrEmpty(Path.GetFileName(savingPath));
   }
-  if (string.IsNullOrEmpty(savePath))
+  if (!savingPathOk)
   {
-    Console.WriteLine("Define saving path using parameter \"--path [path where to save]\".");
+    Console.WriteLine("Define saving path using command line parameter. Example: CadSimulation.exe --path C:\\Projects\\ShapeData.txt");
+    return;
   }
-  if (!Directory.Exists(Path.GetDirectoryName(savePath)))
-  {
-    Console.WriteLine("Saving path doesn't exists.");
-  }
-  return savePath;
 }
+index = args.ToList().IndexOf("--json");
+bool jsonFormat = index >= 0;
 
 while (true)
 {
@@ -43,7 +51,6 @@ while (true)
   if (k.KeyChar == 'q')
     break;
 
-  string? savePath;
   Shape? shape = null;
   switch (k.KeyChar)
   {
@@ -101,26 +108,74 @@ while (true)
         Console.WriteLine("Nothing to save");
         continue;
       }
-      savePath = GetPathFromCommandLine(args);
-      if (!string.IsNullOrEmpty(savePath))
+      if (string.IsNullOrEmpty(savingPath))
       {
-        using (StreamWriter sw = new StreamWriter(savePath!))
+        Console.WriteLine("File path non defined. Add \"--path\" to command line. Example: CadSimulation.exe --path C:\\Projects\\ShapeData.txt");
+        continue;
+      }
+
+      using (StreamWriter sw = new StreamWriter(savingPath))
+      {
+        if (jsonFormat)
+        {
+          List<object> listOfShapes = new List<object>();
+          foreach (var theShape in shapes)
+          {
+            listOfShapes.Add(theShape);
+          }
+          sw.WriteLine(JsonSerializer.Serialize(listOfShapes));
+        }
+        else
         {
           foreach (Shape theShape in shapes)
           {
             sw.WriteLine(theShape.saveAsText());
           }
         }
-        Console.WriteLine("Data saved as text.");
       }
+      Console.WriteLine("Data saved");
       continue;
 
     case 'w': // fetch data
-      savePath = GetPathFromCommandLine(args);
-      if (!string.IsNullOrEmpty(savePath))
+      if (string.IsNullOrEmpty(savingPath))
       {
-        shapes.Clear();
-        using (StreamReader sr = new StreamReader(savePath))
+        Console.WriteLine("File path non defined. Add \"--path\" to command line. Example: CadSimulation.exe --path C:\\Projects\\ShapeData.txt");
+        continue;
+      }
+
+      shapes.Clear();
+
+      using (StreamReader sr = new StreamReader(savingPath))
+      {
+        if (jsonFormat)
+        {
+          List<object> listOfShapes = JsonSerializer.Deserialize<List<object>>(sr.ReadToEnd())!;
+          foreach (var theShape in listOfShapes)
+          {
+            Shape trySquare = new Square((JsonElement)theShape);
+            if (trySquare.IsValid)
+              shapes.Add(trySquare);
+            else
+            {
+              Shape tryRectangle = new Rectangle((JsonElement)theShape);
+              if (tryRectangle.IsValid)
+                shapes.Add(tryRectangle);
+              else
+              {
+                Shape tryCircle = new Circle((JsonElement)theShape);
+                if (tryCircle.IsValid)
+                  shapes.Add(tryCircle);
+                else
+                {
+                  Shape tryTriangle = new Triangle((JsonElement)theShape);
+                  if (tryTriangle.IsValid)
+                    shapes.Add(tryTriangle);
+                }
+              }
+            }
+          }
+        }
+        else
         {
           while (!sr.EndOfStream)
           {
@@ -149,11 +204,9 @@ while (true)
             }
           }
         }
-
-        Console.WriteLine($"Data loaded. Found {shapes.Count} shapes.");
-        continue;
       }
-      break;
+      Console.WriteLine($"Data loaded. Found {shapes.Count} shapes.");
+      continue;
   }
   shapes.Add(shape!);
 }
@@ -166,10 +219,17 @@ namespace CadSimulation
     double area();
 
     /// <summary>
+    /// Get the shape's type. Example: "Square"
+    /// </summary>
+    string ShapeType { get; }
+
+    /// <summary>
     /// Save current data as text mode
     /// </summary>
     /// <returns></returns>
     string saveAsText();
+
+    string saveAsJson();
     
     /// <summary>
     /// Return "true" is current shape data is valid
@@ -178,194 +238,294 @@ namespace CadSimulation
   }
   internal class Square : Shape
   {
-    readonly int _side;
-    readonly bool _isValid;
+    [JsonPropertyName("Type")]
+    public string ShapeType { get { return "Square"; } }
+    public int Side { get; private set; }
+
+    private readonly bool _isValid;
     bool Shape.IsValid { get { return _isValid; } }
 
     public Square(int side)
     {
-      _side = side;
+      Side = side;
       _isValid = true;
     }
 
     /// <summary>
-    /// Deserialize data and save information to shape properties. Extracts information and assigns it to properties
+    /// Deserialize data and save information to shape properties
     /// </summary>
-    /// <param name="serializeAsText">Serialized data from which to extract data</param>
-    public Square(string serializeAsText)
+    /// <param name="serializedData">Serialized data from which to extract data</param>
+    public Square(string serializedData)
     {
       _isValid = false;
-      string[] values = serializeAsText.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+      string[] values = serializedData.Split(" ", StringSplitOptions.RemoveEmptyEntries);
       if (values.Length == 2)
       {
         if (values[0] == "S")
         {
-          if (int.TryParse(values[1], out _side))
+          if (int.TryParse(values[1], out int side))
           {
+            Side = side;
             _isValid = true;
           }
         }
       }
     }
+
+    /// <summary>
+    /// Deserialize data and save information to shape properties
+    /// </summary>
+    /// <param name="objectData">Shape data in json format</param>
+    public Square(JsonElement objectData)
+    {
+      _isValid = objectData.GetProperty("Type").ToString() == ShapeType;
+      if (_isValid)
+      {
+        Side = int.Parse(objectData.GetProperty("Side").ToString());
+      }
+    }
+
     double Shape.area()
     {
-      return _side * _side;
+      return Side * Side;
     }
 
     void Shape.descr()
     {
-      Console.WriteLine($"Square, side: {_side}");
+      Console.WriteLine($"Square, side: {Side}");
     }
+    
     string Shape.saveAsText()
     {
-      return $"S {_side}";
+      return $"S {Side}";
+    }
+
+    string Shape.saveAsJson()
+    {
+      return JsonSerializer.Serialize(this);
     }
   }
+  
   internal class Rectangle : Shape
   {
-    readonly private int _height;
-    readonly private int _width;
-    readonly bool _isValid;
+    [JsonPropertyName("Type")]
+    public string ShapeType { get { return "Rectangle"; } }
+
+    public int Height {  get; private set; }
+    public int Width { get; private set; }
+    
+    private readonly bool _isValid;
     bool Shape.IsValid { get { return _isValid; } }
 
     public Rectangle(int height, int width)
     {
-      _height = height;
-      _width = width;
+      Height = height;
+      Width = width;
       _isValid = true;
     }
 
     /// <summary>
-    /// Deserialize data and save information to shape properties. Extracts information and assigns it to properties
+    /// Deserialize data and save information to shape properties
     /// </summary>
-    /// <param name="serializeAsText">Serialized data from which to extract data</param>
-    public Rectangle(string serializeAsText)
+    /// <param name="serializedData">Serialized data from which to extract data</param>
+    public Rectangle(string serializedData)
     {
       _isValid = false;
-      string[] values = serializeAsText.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+      string[] values = serializedData.Split(" ", StringSplitOptions.RemoveEmptyEntries);
 
       if (values.Length == 3)
       {
         if (values[0] == "R")
         {
-          if (int.TryParse(values[1], out _height))
+          if (int.TryParse(values[1], out int height))
           {
-            if (int.TryParse(values[2], out _width))
+            Height = height;
+            if (int.TryParse(values[2], out int width))
+            {
+              Width = width;
               _isValid = true;
+            }
           }
         }
       }
     }
 
+    /// <summary>
+    /// Deserialize data and save information to shape properties
+    /// </summary>
+    /// <param name="objectData">Shape data in json format</param>
+    public Rectangle(JsonElement objectData)
+    {
+      _isValid = objectData.GetProperty("Type").ToString() == ShapeType;
+      if (_isValid)
+      {
+        Height = int.Parse(objectData.GetProperty("Height").ToString());
+        Width = int.Parse(objectData.GetProperty("Width").ToString());
+      }
+    }
+
     double Shape.area()
     {
-      return _height * _width;
+      return Height * Width;
     }
 
     void Shape.descr()
     {
-      Console.WriteLine($"Rectangle, height: {_height}, width: {_width}");
+      Console.WriteLine($"Rectangle, height: {Height}, width: {Width}");
     }
     string Shape.saveAsText()
     {
-      return $"R {_height} {_width}";
+      return $"R {Height} {Width}";
+    }
+
+    string Shape.saveAsJson()
+    {
+      return JsonSerializer.Serialize(this);
     }
   }
 
   internal class Circle : Shape
   {
-    readonly int _radius;
+    [JsonPropertyName("Type")]
+    public string ShapeType { get { return "Circle"; } }
+
+    public int Radius { get; private set; }
     readonly bool _isValid;
     bool Shape.IsValid { get { return _isValid; } }
 
     public Circle(int radius)
     {
-      _radius = radius;
+      Radius = radius;
       _isValid = true;
     }
 
     /// <summary>
-    /// Deserialize data and save information to shape properties. Extracts information and assigns it to properties
+    /// Deserialize data and save information to shape properties
     /// </summary>
-    /// <param name="serializeAsText">Serialized data from which to extract data</param>
-    public Circle(string serializeAsText)
+    /// <param name="serializedData">Serialized data from which to extract data</param>
+    public Circle(string serializedData)
     {
       _isValid = false;
-      string[] values = serializeAsText.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+      string[] values = serializedData.Split(" ", StringSplitOptions.RemoveEmptyEntries);
       if (values.Length == 2)
       {
         if (values[0] == "C")
         {
-          if (int.TryParse(values[1], out _radius))
+          if (int.TryParse(values[1], out int radius))
           {
+            Radius = radius;
             _isValid = true;
           }
         }
       }
     }
 
-    double Shape.area()
-    {
-      return _radius * _radius * 3.1416;
-    }
-
-    void Shape.descr()
-    {
-      Console.WriteLine($"Circle, radius: {_radius}");
-    }
-    string Shape.saveAsText()
-    {
-      return $"C {_radius}";
-    }
-  }
-
-  internal class Triangle : Shape
-  {
-    readonly int _base;
-    readonly int _height;
-    readonly bool _isValid;
-    bool Shape.IsValid { get { return _isValid; } }
-
-    public Triangle(int b, int h)
-    {
-      _base = b;
-      _height = h;
-      _isValid = true;
-    }
-
     /// <summary>
-    /// Deserialize data and save information to shape properties. Extracts information and assigns it to properties
+    /// Deserialize data and save information to shape properties
     /// </summary>
-    /// <param name="serializeAsText">Serialized data from which to extract data</param>
-    public Triangle(string serializeAsText)
+    /// <param name="objectData">Shape data in json format</param>
+    public Circle(JsonElement objectData)
     {
-      _isValid = false;
-      string[] values = serializeAsText.Split(" ", StringSplitOptions.RemoveEmptyEntries);
-
-      if (values.Length == 3)
+      _isValid = objectData.GetProperty("Type").ToString() == ShapeType;
+      if (_isValid)
       {
-        if (values[0] == "T")
-        {
-          if (int.TryParse(values[1], out _base))
-          {
-            if (int.TryParse(values[2], out _height))
-              _isValid = true;
-          }
-        }
+        Radius = int.Parse(objectData.GetProperty("Radius").ToString());
       }
     }
 
     double Shape.area()
     {
-      return _base * _height / 2;
+      return Radius * Radius * 3.1416;
     }
+
     void Shape.descr()
     {
-      Console.WriteLine($"Triangle, base: {_base}, height: {_height}");
+      Console.WriteLine($"Circle, radius: {Radius}");
     }
     string Shape.saveAsText()
     {
-      return $"T {_base} {_height}";
+      return $"C {Radius}";
+    }
+
+    string Shape.saveAsJson()
+    {
+      return JsonSerializer.Serialize(this);
+    }
+  }
+
+  internal class Triangle : Shape
+  {
+    [JsonPropertyName("Type")]
+    public string ShapeType { get { return "Triangle"; } }
+
+    public int Base { get; private set; }
+    public int Height {  get; private set; }
+    readonly bool _isValid;
+    bool Shape.IsValid { get { return _isValid; } }
+
+    public Triangle(int b, int h)
+    {
+      Base = b;
+      Height = h;
+      _isValid = true;
+    }
+
+    /// <summary>
+    /// Deserialize data and save information to shape properties
+    /// </summary>
+    /// <param name="serializedData">Serialized data from which to extract data</param>
+    public Triangle(string serializedData)
+    {
+      _isValid = false;
+      string[] values = serializedData.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
+      if (values.Length == 3)
+      {
+        if (values[0] == "T")
+        {
+          if (int.TryParse(values[1], out int ibase))
+          {
+            Base = ibase;
+            if (int.TryParse(values[2], out int height))
+            {
+              Height = height;
+              _isValid = true;
+            }
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Deserialize data and save information to shape properties
+    /// </summary>
+    /// <param name="objectData">Shape data in json format</param>
+    public Triangle(JsonElement objectData)
+    {
+      _isValid = objectData.GetProperty("Type").ToString() == ShapeType;
+      if (_isValid)
+      {
+        Base = int.Parse(objectData.GetProperty("Base").ToString());
+        Height = int.Parse(objectData.GetProperty("Height").ToString());
+      }
+    }
+
+    double Shape.area()
+    {
+      return Base * Height / 2;
+    }
+    void Shape.descr()
+    {
+      Console.WriteLine($"Triangle, base: {Base}, height: {Height}");
+    }
+    string Shape.saveAsText()
+    {
+      return $"T {Base} {Height}";
+    }
+
+    string Shape.saveAsJson()
+    {
+      return JsonSerializer.Serialize(this);
     }
   }
 }
