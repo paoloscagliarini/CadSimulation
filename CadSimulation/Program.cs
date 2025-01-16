@@ -201,10 +201,22 @@ while (true)
 
           string json = JsonSerializer.Serialize(listOfShapes);
           StringContent postData = new StringContent(json);
-          HttpResponseMessage response = await client.PostAsync($"{uri}", postData);
-          string result = await response.Content.ReadAsStringAsync();
-          
-          Console.WriteLine(response.StatusCode);
+          try
+          {
+            HttpResponseMessage response = await client.PostAsync($"{uri}", postData);
+            await response.Content.ReadAsStringAsync();
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+              Console.WriteLine();
+              Console.WriteLine("---- Error saving data ----");
+            }
+          }
+          catch (Exception ex)
+          {
+            Console.WriteLine("----");
+            Console.WriteLine(ex.Message);
+            continue;
+          }
           break;
 
         case 4: // save data to web server, data in custom format
@@ -216,8 +228,22 @@ while (true)
 
           client = new HttpClient();
           postData = new StringContent(rowLines);
-          response = await client.PostAsync($"{uri}", postData);
-          result = await response.Content.ReadAsStringAsync();
+          try
+          {
+            HttpResponseMessage response = await client.PostAsync($"{uri}", postData);
+            await response.Content.ReadAsStringAsync();
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+              Console.WriteLine();
+              Console.WriteLine("---- Error saving data ----");
+            }
+          }
+          catch (Exception ex)
+          {
+            Console.WriteLine("----");
+            Console.WriteLine(ex.Message);
+            continue;
+          }
           break;
       }
 
@@ -266,10 +292,32 @@ while (true)
             }
           }
           else
-          {
+          {// fetch data from url, data in json format
+
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync($"{uri}");
-            savedData = await response.Content.ReadAsStringAsync();
+            try
+            {
+              HttpResponseMessage response = await client.GetAsync($"{uri}");
+              savedData = await response.Content.ReadAsStringAsync();
+              if (response.StatusCode != System.Net.HttpStatusCode.OK)
+              {
+                Console.WriteLine();
+                Console.WriteLine("---- Error loading data ----");
+                continue;
+              }
+
+              if (string.IsNullOrEmpty(savedData))
+              {
+                Console.WriteLine("---- Empty data from web server ----");
+                continue;
+              }
+            }
+            catch (Exception ex)
+            {
+              Console.WriteLine("----");
+              Console.WriteLine(ex.Message);
+              continue;
+            }
           }
           listOfShapes = JsonSerializer.Deserialize<List<object>>(savedData)!;
           foreach (var theShape in listOfShapes)
@@ -320,11 +368,27 @@ while (true)
             }
           }
           else
-          {
+          {// fetch data from url, data in custom format
+
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync($"{uri}");
-            savedData = await response.Content.ReadAsStringAsync();
-            rowsList = savedData.Split("\n", StringSplitOptions.RemoveEmptyEntries).ToList();
+            try
+            {
+              HttpResponseMessage response = await client.GetAsync($"{uri}");
+              savedData = await response.Content.ReadAsStringAsync();
+              rowsList = savedData.Split("\n", StringSplitOptions.RemoveEmptyEntries).ToList();
+              if (response.StatusCode != System.Net.HttpStatusCode.OK)
+              {
+                Console.WriteLine();
+                Console.WriteLine("---- Error loading data ----");
+                continue;
+              }
+            }
+            catch (Exception ex)
+            {
+              Console.WriteLine("----");
+              Console.WriteLine(ex.Message);
+              continue;
+            }
           }
 
           foreach (string rowData in rowsList)

@@ -2,7 +2,7 @@
   "profiles": {
     "CadSimulation": {
       "commandName": "Project",
-      "commandLineArgs": "--url \"http://127.0.0.1:8282/\""
+      "commandLineArgs": "--url \"http://127.0.0.1:8282/\" --json "
     }
   }
 }
