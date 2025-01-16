@@ -5,6 +5,8 @@ using System.Text.Json.Serialization;
 
 List<Shape> shapes = new List<Shape>();
 string savingPath = string.Empty;
+string url = string.Empty;
+Uri? uri = null;
 
 int index = args.ToList().IndexOf("--path");
 if (index >= 0)
@@ -25,12 +27,25 @@ if (index >= 0)
   }
   if (!savingPathOk)
   {
-    Console.WriteLine("Define saving path using command line parameter. Example: CadSimulation.exe --path C:\\Projects\\ShapeData.txt");
+    Console.WriteLine("Define saving path using command line parameter. Example: CadSimulation.exe --path \"C:\\Projects\\ShapeData.txt\"");
     return;
   }
 }
 index = args.ToList().IndexOf("--json");
 bool jsonFormat = index >= 0;
+
+index = args.ToList().IndexOf("--url");
+if (index >= 0)
+{
+  // "url" expected right after
+
+  bool urlOk = (index + 1 < args.Length) && Uri.TryCreate(args[index + 1], UriKind.Absolute, out uri);
+  if (!urlOk)
+  {
+    Console.WriteLine("Define \"url\" using command line parameter. Example: CadSimulation.exe --url \"http://127.0.0.1:8282/shapes\"");
+    return;
+  }
+}
 
 while (true)
 {
@@ -42,7 +57,6 @@ while (true)
 "   'r': insert a rectangle\n" +
 "   'l': list all inserted shapes\n" +
 "   'a': all shapres total area\n" +
-"----\n" +
 "   'k': save data\n" +
 "   'w': fetch data\n" +
 "   'q': quit");
@@ -105,51 +119,159 @@ while (true)
     case 'k': // save data
       if (shapes.Count == 0)
       {
-        Console.WriteLine("Nothing to save");
-        continue;
-      }
-      if (string.IsNullOrEmpty(savingPath))
-      {
-        Console.WriteLine("File path non defined. Add \"--path\" to command line. Example: CadSimulation.exe --path C:\\Projects\\ShapeData.txt");
+        Console.WriteLine();
+        Console.WriteLine("---- Nothing to save ----");
         continue;
       }
 
-      using (StreamWriter sw = new StreamWriter(savingPath))
+      // actionType = 0 -> nothing to do
+      // actionType = 1 -> save data on file system, data in json format
+      // actionType = 2 -> save data on file system, data in custom format
+      // actionType = 3 -> save data to web server, data in json format
+      // actionType = 4 -> save data to web server, data in custom format
+      int actionType = 0;
+      if (!string.IsNullOrEmpty(savingPath))
       {
-        if (jsonFormat)
-        {
-          List<object> listOfShapes = new List<object>();
+        actionType = jsonFormat ? 1 : 2;
+      }
+      else if (uri != null)
+      {
+        actionType = jsonFormat ? 3 : 4;
+      }
+
+      List<object> listOfShapes;
+
+      switch (actionType)
+      {
+        case 0:
+          continue;
+
+        case 1: // save data on file system, data in json format
+          listOfShapes = new List<object>();
+          try
+          {
+            using (StreamWriter sw = new StreamWriter(savingPath))
+            {
+              foreach (var theShape in shapes)
+              {
+                listOfShapes.Add(theShape);
+              }
+              sw.WriteLine(JsonSerializer.Serialize(listOfShapes));
+            }
+          }
+          catch (Exception ex)
+          {
+            Console.WriteLine();
+            Console.WriteLine("----");
+            Console.WriteLine(ex.Message);
+            Console.WriteLine("----");
+            continue;
+          }
+          break;
+
+        case 2: // save data on file system, data in custom format
+          try
+          {
+            using (StreamWriter sw = new StreamWriter(savingPath))
+            {
+              foreach (Shape theShape in shapes)
+              {
+                sw.WriteLine(theShape.saveAsText());
+              }
+            }
+          }
+          catch (Exception ex)
+          {
+            Console.WriteLine();
+            Console.WriteLine("----");
+            Console.WriteLine(ex.Message);
+            Console.WriteLine("----");
+            continue;
+          }
+          break;
+
+        case 3: // save data to web server, data in json format
+          listOfShapes = new List<object>();
           foreach (var theShape in shapes)
           {
             listOfShapes.Add(theShape);
           }
-          sw.WriteLine(JsonSerializer.Serialize(listOfShapes));
-        }
-        else
-        {
+
+          HttpClient client = new HttpClient();
+
+          string json = JsonSerializer.Serialize(listOfShapes);
+          StringContent postData = new StringContent(json);
+          HttpResponseMessage response = await client.PostAsync($"{uri}", postData);
+          string result = await response.Content.ReadAsStringAsync();
+          
+          Console.WriteLine(response.StatusCode);
+          break;
+
+        case 4: // save data to web server, data in custom format
+          string rowLines = string.Empty;
           foreach (Shape theShape in shapes)
           {
-            sw.WriteLine(theShape.saveAsText());
+            rowLines += theShape.saveAsText() + "\n";
           }
-        }
+
+          client = new HttpClient();
+          postData = new StringContent(rowLines);
+          response = await client.PostAsync($"{uri}", postData);
+          result = await response.Content.ReadAsStringAsync();
+          break;
       }
-      Console.WriteLine("Data saved");
+
+      Console.WriteLine();
+      Console.WriteLine("---- Data saved ----");
       continue;
 
     case 'w': // fetch data
-      if (string.IsNullOrEmpty(savingPath))
-      {
-        Console.WriteLine("File path non defined. Add \"--path\" to command line. Example: CadSimulation.exe --path C:\\Projects\\ShapeData.txt");
-        continue;
-      }
-
       shapes.Clear();
 
-      using (StreamReader sr = new StreamReader(savingPath))
+      string savedData = string.Empty;
+
+      // actionType = 0 -> nothing to do
+      // actionType = 1 -> fetch data from file system, data in json format
+      // actionType = 2 -> fetch data from file system, data in custom format
+      // actionType = 3 -> fetch data from url, data in json format
+      // actionType = 4 -> fetch data from url, data in custom format
+      actionType = 0;
+      if (!string.IsNullOrEmpty(savingPath))
       {
-        if (jsonFormat)
-        {
-          List<object> listOfShapes = JsonSerializer.Deserialize<List<object>>(sr.ReadToEnd())!;
+        actionType = jsonFormat ? 1 : 2;
+      }
+      else if (uri != null)
+      {
+        actionType = jsonFormat ? 3 : 4;
+      }
+      switch (actionType)
+      {
+        case 0:
+          Console.WriteLine("Command line not correct. For example add \"--path\" to command line. Example: CadSimulation.exe --path C:\\Projects\\ShapeData.txt");
+          break;
+
+        case 1: // fetch data from file system, data in json format
+        case 3: // fetch data from url, data in json format
+          if (actionType == 1)
+          {
+            if (!File.Exists(savingPath))
+            {
+              Console.WriteLine();
+              Console.WriteLine($"File \"{savingPath}\" doesn't exists");
+              continue;
+            }
+            using (StreamReader sr = new StreamReader(savingPath))
+            {
+              savedData = sr.ReadToEnd();
+            }
+          }
+          else
+          {
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync($"{uri}");
+            savedData = await response.Content.ReadAsStringAsync();
+          }
+          listOfShapes = JsonSerializer.Deserialize<List<object>>(savedData)!;
           foreach (var theShape in listOfShapes)
           {
             Shape trySquare = new Square((JsonElement)theShape);
@@ -174,38 +296,66 @@ while (true)
               }
             }
           }
-        }
-        else
-        {
-          while (!sr.EndOfStream)
-          {
-            string? rowData = sr.ReadLine();
+          break;
 
-            Shape trySquare = new Square(rowData!);
+        case 2: // fetch data from file system, data in custom format
+        case 4: // fetch data from url, data in custom format
+          List<string> rowsList;
+          if (actionType == 2)
+          {
+            if (!File.Exists(savingPath))
+            {
+              Console.WriteLine();
+              Console.WriteLine($"File \"{savingPath}\" doesn't exists");
+              continue;
+            }
+
+            rowsList = new List<string>();
+            using (StreamReader sr = new StreamReader(savingPath))
+            {
+              while (!sr.EndOfStream)
+              {
+                rowsList.Add(sr.ReadLine()!);
+              }
+            }
+          }
+          else
+          {
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync($"{uri}");
+            savedData = await response.Content.ReadAsStringAsync();
+            rowsList = savedData.Split("\n", StringSplitOptions.RemoveEmptyEntries).ToList();
+          }
+
+          foreach (string rowData in rowsList)
+          {
+            Shape trySquare = new Square(rowData);
             if (trySquare.IsValid)
               shapes.Add(trySquare);
             else
             {
-              Shape tryRectangle = new Rectangle(rowData!);
+              Shape tryRectangle = new Rectangle(rowData);
               if (tryRectangle.IsValid)
                 shapes.Add(tryRectangle);
               else
               {
-                Shape tryCircle = new Circle(rowData!);
+                Shape tryCircle = new Circle(rowData);
                 if (tryCircle.IsValid)
                   shapes.Add(tryCircle);
                 else
                 {
-                  Shape tryTriangle = new Triangle(rowData!);
+                  Shape tryTriangle = new Triangle(rowData);
                   if (tryTriangle.IsValid)
                     shapes.Add(tryTriangle);
                 }
               }
             }
           }
-        }
+          break;
       }
-      Console.WriteLine($"Data loaded. Found {shapes.Count} shapes.");
+
+      Console.WriteLine();
+      Console.WriteLine($"---- Data loaded. Found {shapes.Count} shape(s) ----");
       continue;
   }
   shapes.Add(shape!);
