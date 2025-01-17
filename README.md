@@ -60,7 +60,7 @@ Implementare i requisiti di cui sopra attraverso le seguenti iterazioni (fare co
 <li>Iterazione 3: aggiungere il supporto per la persistenza tramite servizio remoto http</li>
 <ul>
 <li>se l'applicazione viene avviata col parametro --url "uri" (es: --url http://127.0.0.1:8282/shapes), l'app si deve affidare ad un servizio http per le operazioni di persistenza, ovvero fare una POST per lo store e GET per la fetch.</li>
-<li>se come parametro di avvio viene utilizzato sia --path che --uri, quest'ultimo viene ignorato (quindi l'app utilizza il file system per la persistenza)<&li>
+<li>se come parametro di avvio viene utilizzato sia --path che --uri, quest'ultimo viene ignorato (quindi l'app utilizza il file system per la persistenza)</li>
 <li>per la POST, il payload è la stringa che contiene le informazioni da persistere (in formato custom o json, a seconda dei parametri di avvio)
 <li>con la GET, l'app recupera dal servizio remoto la stringa contenente le informazioni</li>
 <li>note:</li>
