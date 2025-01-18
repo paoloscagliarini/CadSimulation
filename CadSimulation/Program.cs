@@ -1,5 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-using CadSimulation;
+﻿using CadSimulation;
 using CadSimulation.Business;
 using CadSimulation.ConsoleUI;
 
@@ -16,11 +15,24 @@ using CadSimulation.ConsoleUI;
 */
 
 List<IShape> shapes = new List<IShape>();
-MenuItem? menuItem;
-ManageData manageData;
+MenuItem? menuItem; // Defines information about individual menu item, such as description that will be shown in the user iterface
+ConsoleData consoleData; // Save the information belonging to an application such as the arguments of the command line in a console application
+IUserInterface consoleUI = new ConsoleUI(); // Manages user interactions with the console application
 
-ConsoleData consoleData = new ConsoleData(args);
-IUserInterface consoleUI = new ConsoleUI();
+try
+{
+  consoleData = new ConsoleData(args);
+}
+catch (Exception ex)
+{
+  consoleUI.MessageText(ex.Message);
+  consoleUI.MessageText("Press any key to quit");
+  consoleUI.UserInput();
+  return;
+}
+
+// Utility for saving and loading list of shapes
+ManageDataUtility manageData = new ManageDataUtility(consoleData);
 
 while (!consoleUI.Quit)
 {
@@ -88,7 +100,6 @@ while (!consoleUI.Quit)
       break;
 
     case "k": // save data
-      manageData = new ManageData(consoleData);
       try
       {
         manageData.Save(shapes);
@@ -104,7 +115,6 @@ while (!consoleUI.Quit)
       break;
 
     case "w": // fetch data
-      manageData = new ManageData(consoleData);
       try
       {
         shapes = manageData.Load();

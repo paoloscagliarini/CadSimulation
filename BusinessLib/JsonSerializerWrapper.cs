@@ -2,6 +2,9 @@
 
 namespace CadSimulation.Business
 {
+  /// <summary>
+  /// Performs serialization and deserialization of a list of shapes in json format
+  /// </summary>
   public static class JsonSerializerWrapper
   {
     public static string Serialize(List<IShape> shapes)

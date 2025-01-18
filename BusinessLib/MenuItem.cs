@@ -1,5 +1,8 @@
 ﻿namespace CadSimulation.Business
 {
+  /// <summary>
+  /// Defines information about individual menu item, such as description that will be shown in the user iterface
+  /// </summary>
   public class MenuItem
   {
     public readonly string Code;

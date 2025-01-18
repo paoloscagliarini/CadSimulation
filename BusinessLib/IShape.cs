@@ -2,10 +2,13 @@
 {
   public interface IShape
   {
+    /// <summary>
+    /// Returns the shape's code. Examples: "S", "T"
+    /// </summary>
     string ShapeCode { get; }
 
     /// <summary>
-    /// Get the shape's type. Example: "Square"
+    /// Returns the shape's type. Examples: "Square", "Triangle"
     /// </summary>
     string ShapeType { get; }
 

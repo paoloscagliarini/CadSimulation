@@ -35,7 +35,7 @@ namespace CadSimulation.ConsoleUI
           savingPath = args[index + 1];
           if (!Directory.Exists(Path.GetDirectoryName(savingPath)))
           {
-            throw new ApplicationException("Saving path doesn't exists.");
+            throw new ApplicationException($"Saving path \"{savingPath}\" doesn't exists.");
           }
 
           savingPathOk = !string.IsNullOrEmpty(Path.GetFileName(savingPath));

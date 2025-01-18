@@ -7,11 +7,11 @@ namespace CadSimulation
   /// <summary>
   /// Utility for saving and loading list of shapes
   /// </summary>
-  internal class ManageData
+  internal class ManageDataUtility
   {
     private readonly IDataAdapter _fileAdapter;
 
-    public ManageData(IApplicationData applicationData)
+    public ManageDataUtility(IApplicationData applicationData)
     {
       // actionType = 1 -> manage data on file system, data in json format
       // actionType = 2 -> manage data on file system, data in custom format

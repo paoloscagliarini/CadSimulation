@@ -2,6 +2,9 @@
 
 namespace CadSimulation
 {
+  /// <summary>
+  /// Performs serialization and deserialization of a list of shapes in "custom" format
+  /// </summary>
   public static class CustomFormatSerializer
   {
     public static string Serialize(List<IShape> shapes)
@@ -50,7 +53,7 @@ namespace CadSimulation
         string[] values = rowData.Split(" ", StringSplitOptions.RemoveEmptyEntries);
         if (values.Length == 0)
         {
-          throw new ApplicationException($"row n.{line} -> Data non valid");
+          throw new ApplicationException($"row n.{line} -> Invalid data");
         }
         switch (values[0])
         {
@@ -97,7 +100,7 @@ namespace CadSimulation
               {
                 if (int.TryParse(values[2], out int width))
                 {
-                  listOfShapes.Add(new Rectangle(width, height));
+                  listOfShapes.Add(new Rectangle(height, width));
                   continue;
                 }
               }
