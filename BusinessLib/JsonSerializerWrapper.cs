@@ -1,9 +1,8 @@
 ﻿using System.Text.Json;
-using CadSimulation.DomainClasses;
 
-namespace CadSimulation
+namespace CadSimulation.Business
 {
-  internal static class JsonSerializerWrapper
+  public static class JsonSerializerWrapper
   {
     public static string Serialize(List<IShape> shapes)
     {

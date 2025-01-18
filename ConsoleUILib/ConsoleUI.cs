@@ -1,16 +1,19 @@
-﻿using CadSimulation.DomainClasses;
+﻿using CadSimulation.Business;
 
-namespace CadSimulation
+namespace CadSimulation.ConsoleUI
 {
-  internal class ConsoleUI : IUserInterface
+  /// <summary>
+  /// Manages user interactions with the console application
+  /// </summary>
+  public class ConsoleUI : IUserInterface
   {
-    private readonly MenuData _menuData;
+    private readonly ConsoleMenu _consoleMenu;
 
     public bool Quit { get; private set; }
 
     public ConsoleUI()
     {
-      _menuData = new MenuData();
+      _consoleMenu = new ConsoleMenu();
       Quit = false;
     }
 
@@ -18,7 +21,7 @@ namespace CadSimulation
     {
       MessageText("-----------");
       MessageText("Options:");
-      foreach (MenuItem menuItem in _menuData.Items)
+      foreach (MenuItem menuItem in _consoleMenu.Items)
       {
         MessageText($"\t'{menuItem.Code}': {menuItem.Description}");
       }
@@ -27,7 +30,7 @@ namespace CadSimulation
     public MenuItem? GetUserChoice()
     {
       var k = Console.ReadKey(true);
-      MenuItem? menuItem = _menuData.Items.FirstOrDefault(x => x.Code == k.KeyChar.ToString());
+      MenuItem? menuItem = _consoleMenu.Items.FirstOrDefault(x => x.Code == k.KeyChar.ToString());
       Quit = (menuItem != null) && (menuItem!.Code == "q");
       return menuItem;
     }
@@ -37,11 +40,9 @@ namespace CadSimulation
       return Console.ReadLine();
     }
 
-
     public void MessageText(string text)
     {
       Console.WriteLine(text);
     }
-
   }
 }

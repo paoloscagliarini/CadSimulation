@@ -1,8 +1,11 @@
-﻿using CadSimulation.DomainClasses;
+﻿using CadSimulation.Business;
 
-namespace CadSimulation
+namespace CadSimulation.FileSystem
 {
-  internal class FileSystemAdapter : IFileAdapter
+  /// <summary>
+  /// Manages comunications with local file system
+  /// </summary>
+  public class FileSystemAdapter : IDataAdapter
   {
     private readonly string _filePath;
     private readonly bool _json;
@@ -15,37 +18,23 @@ namespace CadSimulation
 
     public void Save(List<IShape> listOfShapes)
     {
-      if (_json)
+      using (StreamWriter sw = new StreamWriter(_filePath))
       {
-        using (StreamWriter sw = new StreamWriter(_filePath))
-        {
+        if (_json)
           sw.WriteLine(JsonSerializerWrapper.Serialize(listOfShapes));
-        }
-      }
-      else
-      {
-        using (StreamWriter sw = new StreamWriter(_filePath))
-        {
+        else
           sw.Write(CustomFormatSerializer.Serialize(listOfShapes));
-        }
       }
     }
     
     public List<IShape> Load()
     {
-      if (_json)
+      using (StreamReader sr = new StreamReader(_filePath))
       {
-        using (StreamReader sr = new StreamReader(_filePath))
-        {
+        if (_json)
           return JsonSerializerWrapper.Deserialize(sr.ReadToEnd());
-        }
-      }
-      else
-      {
-        using (StreamReader sr = new StreamReader(_filePath))
-        {
+        else
           return CustomFormatSerializer.Deserialize(sr.ReadToEnd());
-        }
       }
     }
   }

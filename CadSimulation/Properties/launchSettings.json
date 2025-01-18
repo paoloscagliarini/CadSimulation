@@ -1,8 +1,7 @@
 {
   "profiles": {
     "CadSimulation": {
-      "commandName": "Project",
-      "commandLineArgs": "--path \"c:\\Progetti\\CadSimulation.txt\""
+      "commandName": "Project"
     }
   }
 }

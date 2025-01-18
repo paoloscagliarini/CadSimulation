@@ -1,8 +1,8 @@
-﻿using CadSimulation.DomainClasses;
+﻿using CadSimulation.Business;
 
 namespace CadSimulation
 {
-  internal static class CustomFormatSerializer
+  public static class CustomFormatSerializer
   {
     public static string Serialize(List<IShape> shapes)
     {

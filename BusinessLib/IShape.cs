@@ -1,6 +1,6 @@
-﻿namespace CadSimulation.DomainClasses
+﻿namespace CadSimulation.Business
 {
-  internal interface IShape
+  public interface IShape
   {
     string ShapeCode { get; }
 

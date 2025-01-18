@@ -1,6 +1,8 @@
-﻿namespace CadSimulation.DomainClasses
+﻿using CadSimulation.Business;
+
+namespace CadSimulation.ConsoleUI
 {
-  internal class ConsoleData : IApplicationData
+  public class ConsoleData : IApplicationData
   {
     private readonly Dictionary<string, string> _listCommandLineParameters;
 
@@ -18,7 +20,7 @@
 
     public ConsoleData(string[] args) 
     {
-      _listCommandLineParameters = new Dictionary<string, string>();
+      _listCommandLineParameters = [];
 
       string savingPath = string.Empty;
 

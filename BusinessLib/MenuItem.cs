@@ -1,6 +1,6 @@
-﻿namespace CadSimulation.DomainClasses
+﻿namespace CadSimulation.Business
 {
-  internal class MenuItem
+  public class MenuItem
   {
     public readonly string Code;
 

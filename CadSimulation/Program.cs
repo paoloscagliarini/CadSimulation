@@ -1,6 +1,19 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using CadSimulation;
-using CadSimulation.DomainClasses;
+using CadSimulation.Business;
+using CadSimulation.ConsoleUI;
+
+/*
+ Examples of running console application:
+  1) save data to file system in custom format
+    --path "c:\Projects\CadSimulation.txt"
+  2) save data to file system in json format
+    --path "c:\Projects\CadSimulation.json" --json
+  3) save data to web server in custom format
+    --url "http://127.0.0.1:8282/" 
+  4) save data to web server in json format
+    --url "http://127.0.0.1:8282/" --json 
+*/
 
 List<IShape> shapes = new List<IShape>();
 MenuItem? menuItem;
@@ -24,7 +37,7 @@ while (!consoleUI.Quit)
   {
     case "l":
       consoleUI.MessageText("");
-      consoleUI.MessageText("List of shapes:");
+      consoleUI.MessageText($"List of shapes (count={shapes.Count})");
       if (shapes.Count == 0)
       {
         consoleUI.MessageText("list is empty");

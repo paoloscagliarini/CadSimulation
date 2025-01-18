@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace CadSimulation.DomainClasses
+namespace CadSimulation.Business
 {
-  internal class Rectangle : IShape
+  public class Rectangle : IShape
   {
     [JsonIgnore]
     public string ShapeCode { get { return "R"; } }

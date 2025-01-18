@@ -1,13 +1,15 @@
-﻿namespace CadSimulation.DomainClasses
+﻿using CadSimulation.Business;
+
+namespace CadSimulation.ConsoleUI
 {
-  internal class MenuData
+  public class ConsoleMenu
   {
     public readonly List<MenuItem> Items;
     
-    public MenuData()
+    public ConsoleMenu()
     {
-      Items = new List<MenuItem>()
-      {
+      Items =
+      [
         new MenuItem("s", "insert a square"),
         new MenuItem("t", "insert a triangle"),
         new MenuItem("c", "insert a circle"),
@@ -17,7 +19,7 @@
         new MenuItem("k", "save data"),
         new MenuItem("w", "fetch data"),
         new MenuItem("q", "quit")
-      };
+      ];
     }
   }
 }
